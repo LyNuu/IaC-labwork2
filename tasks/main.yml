@@ -1,12 +1,54 @@
 ---
-- name: Install Docker and dependencies
-  apt:
-    name: "{{ docker_packages }}"
+- name: Install dependencies for Docker
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
     state: present
     update_cache: yes
 
-- name: Ensure Docker service is running
-  service:
+- name: Add Docker official GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install Docker Engine and Git
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - git
+    state: present
+    update_cache: yes
+  notify: Restart Docker service
+
+- name: Ensure Docker is running
+  ansible.builtin.service:
     name: docker
-    state: "{{ docker_service_state }}"
-    enabled: "{{ docker_service_enabled }}"
+    state: started
+    enabled: yes
+
+- name: Clone App Repository
+  ansible.builtin.git:
+    repo: "{{ lab_git_repo }}"
+    dest: "{{ app_dest_path }}"
+    force: yes
+    depth: 1
+
+- name: Run Docker Container
+  community.docker.docker_container:
+    name: django-web-app
+    image: "{{ docker_image_name }}"
+    state: started
+    restart_policy: always
+    published_ports:
+      - "8000:8000"
