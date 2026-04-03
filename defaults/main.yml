@@ -1,7 +1,10 @@
 ---
 docker_packages:
-  - docker.io
-  - git
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
   - python3-docker
 
 docker_service_state: started
